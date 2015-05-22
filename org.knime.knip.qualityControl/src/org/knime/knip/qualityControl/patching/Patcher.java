@@ -1,8 +1,5 @@
 package org.knime.knip.qualityControl.patching;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccess;
 import net.imglib2.img.Img;
@@ -15,10 +12,10 @@ public class Patcher {
          * Parameters:  dimensions: Array containing the index of the dimensions in which the image is to be cut into patches
          *              patchesPerDimension: Number of patches per corresponding dimension
          *              img: Image that is to be cut into patches
-         * Output:      Object array that contains patches of which each contains a part of the input image
+         * Output:      List of patches of which each contains a part of the input image
          * 
          */
-        public static <T extends Type<T>> Object[] patchImg(final int[] dimensions, final int[] patchesPerDimension, final Img<T> img) {
+        public static <T extends Type<T>> Object[] patchImg(final Img<T> img, final int[] dimensions, final int[] patchesPerDimension) {
                 final int n = dimensions.length;
 
                 // For each dimension that is to be patched, the number of patches needs to be provided
@@ -30,50 +27,53 @@ public class Patcher {
 
                 // Computation of number of overall patches and determination of the patch size for each dimension
                 int numPatches = 1;
-                final long[] dimensionSize = new long[n];
+                final long[] dimensionSize = new long[img.numDimensions()];
                 img.dimensions(dimensionSize);
                 final long[] patchSizePerDimension = new long[n];
 
                 for (int i = 0; i < n; i++) {
                         numPatches *= patchesPerDimension[i];
                         patchSizePerDimension[i] = (dimensionSize[i]) / patchesPerDimension[i];
-                        if (patchSizePerDimension[i] == 0) {
-                                System.out.println("Error in org.knime.knip.qualityControl.patching Patcher :"
-                                                + "The number of patches per dimension must be smaller or equal to the size of the dimension.");
-                        }
                 }
 
-                // HashMap is necessary to later check whether dimension should be patched or not
-                final HashMap<Integer, Integer> dimensionsMap = createHashMapFromArray(dimensions);
-                final ArrayList<Img<T>> patches = new ArrayList<Img<T>>(numPatches);
+                final Object[] patches = new Object[numPatches];
+                final Counter counter = new Counter(patchesPerDimension);
+                final int numDimensions = img.numDimensions();
 
-                // creation of the patches
-                for (int i = 0; i < numPatches; i++) {
-                        final int numDimensions = img.numDimensions();
+                // compute patches
+                for (int p = 0; p < numPatches; p++) {
+                        // create patch
                         final long[] min = new long[numDimensions];
                         final long[] max = new long[numDimensions];
+                        int index = 0;
+                        int currentSpecifiedDimension = dimensions[index];
 
-                        // computation of patch boundaries per dimension 
-                        //(full dimension if the dimension is not specified to be patched)
-                        for (int j = 0; j < numDimensions; j++) {
-                                if (dimensionsMap.containsKey(j)) {
-                                        final int index = dimensionsMap.get(j);
-                                        // since it is possible that an image cannot be evenly divided into patches,
-                                        // the last patch of the dimension might be larger
-                                        min[j] = (i % patchesPerDimension[index]) * patchSizePerDimension[index];
-                                        max[j] = (((i + 1) % patchesPerDimension[index]) == 0) ? dimensionSize[j] : min[j]
+                        // determine patch interval
+                        for (int d = 0; d < numDimensions; d++) {
+                                // calculate intervals for specified dimensions
+                                if (currentSpecifiedDimension == d) {
+                                        min[d] = counter.getDigit(index) * patchSizePerDimension[index];
+                                        // the last patch of the dimension is larger if the patch size does
+                                        // not evenly fit the dimension size
+                                        max[d] = (counter.getDigit(index) == patchesPerDimension[index] - 1) ? dimensionSize[d] : min[d]
                                                         + patchSizePerDimension[index] - 1;
+
+                                        // select next specified dimension
+                                        index += (index == dimensions.length - 1) ? 0 : 1;
+                                        currentSpecifiedDimension = dimensions[index];
                                 } else {
-                                        min[j] = 0;
-                                        max[j] = dimensionSize[j];
+                                        // include unspecified dimensions completely into the patch
+                                        min[d] = 0;
+                                        max[d] = dimensionSize[d];
                                 }
                         }
+                        patches[p] = createPatch(img, min, max);
 
-                        patches.add(createPatch(img, min, max));
-
+                        // increment counter
+                        counter.increment();
                 }
 
-                return patches.toArray();
+                return patches;
         }
 
         /* Creates a single patch of img that is determined by the interval given by min and max
@@ -111,18 +111,6 @@ public class Patcher {
                 }
 
                 return patch;
-        }
-
-        /* Creates a HashMap from an array (helper function for patchImg)
-         * Input:   array: int array containing values (that will be the keys later)
-         * Output:  HashMap for which the values of the arrays are the keys and the indices are the values
-         */
-        private static HashMap<Integer, Integer> createHashMapFromArray(int[] array) {
-                HashMap<Integer, Integer> map = new HashMap<Integer, Integer>(array.length);
-                for (int i = 0; i < array.length; i++) {
-                        map.put(array[i], i);
-                }
-                return map;
         }
 
 }
