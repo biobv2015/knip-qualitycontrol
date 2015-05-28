@@ -113,12 +113,12 @@ public class Patcher {
                 return patch;
         }
 
-        /* Calculates the most even distribution of patches over the dimensions
-         * for example 4*4 is better than 8*2 (assuming that the dimensions are of approximately the same size)
+        /* Calculates the patches per dimension relative to the dimension size
          * Parameters:  numPatches: Total number of patches must be a power of 2
          *              dimensions: The size of each dimension (the index indicates which dimension)
+         * Output:  int array containing the patches per dimension
          */
-        public static <T> int[] calculatePatchesPerDimension(final int numPatches, final long[] dimensions) {
+        public static <T> int[] calculatePatchesPerDimensionRelSize(final int numPatches, final long[] dimensions) {
 
                 // captures the patches per dimension
                 final int[] patchesPerDimension = new int[dimensions.length];
@@ -153,6 +153,37 @@ public class Patcher {
                 return patchesPerDimension;
         }
 
+        /* Calculates the most even distribution of patches over the dimensions
+         * for example 4*4 is better than 8*2 (assuming that the dimensions are of approximately the same size)
+         * Parameters:  numPatches: Total number of patches must be a power of 2
+         *              dimensions: The size of each dimension (the index indicates which dimension)
+         * Output:  int array containing the patches per dimension
+         */
+        public static int[] calculatePatchesPerDimension(final int numPatches, final long[] dimensions) {
+                int pow = log2(numPatches);
+
+                int avgPatches = (int) Math.round(((double) pow) / dimensions.length);
+
+                int[] patchesPerDimension = new int[dimensions.length];
+
+                for (int p = 0; p < dimensions.length; p++) {
+                        if (pow == 0) {
+                                patchesPerDimension[p] = 1;
+                        } else if (pow - avgPatches >= 0) {
+                                patchesPerDimension[p] = (int) Math.pow(2, avgPatches);
+                                pow -= avgPatches;
+                        } else {
+                                patchesPerDimension[p] = (int) Math.pow(2, pow);
+                                pow = 0;
+                        }
+                }
+
+                if (pow > 0)
+                        patchesPerDimension[0] *= (int) Math.pow(2, pow);
+
+                return patchesPerDimension;
+        }
+
         /* Computes the log2 for input ONLY ACCURATE FOR POWERS OF 2
          * Parameters:  input:  The int for which the log2 is to be computed
          * Output:  The log2 of input
@@ -180,8 +211,8 @@ public class Patcher {
         }
 
         public static void main(String[] args) {
-                int numPatches = 4;
-                long[] dimensions = {100, 100};
+                int numPatches = 256;
+                long[] dimensions = {100, 100, 100};
                 int[] patchesPerDimension = calculatePatchesPerDimension(numPatches, dimensions);
 
                 System.out.print("patchesPerDimension: ");
