@@ -113,4 +113,44 @@ public class Patcher {
                 return patch;
         }
 
+        /* Calculates the most even distribution of patches over the dimensions
+         * for example 4*3 is better than 6*2 (assuming that the dimensions are of approximately the same size)
+         * Parameters:  numPatches: Total number of patches must be a power of 2
+         *              dimensions: The size of each dimension (the index indicates which dimension)
+         */
+        public static <T> int[] calculatePatchesPerDimension(final int numPatches, final long[] dimensions) {
+
+                // Calculate which power of 2 numPatches is
+                int num = numPatches;
+                int pow = 0;
+                for (; num > 0; pow++)
+                        num >>= 1;
+                pow--;
+
+                int avgPatches = pow / dimensions.length + 1;
+
+                final int[] patchesPerDimension = new int[dimensions.length];
+
+                for (int d = 0; d < dimensions.length; d++) {
+                        if (pow > 0) {
+                                patchesPerDimension[d] = (int) Math.pow(2, avgPatches);
+                                pow -= avgPatches;
+                        } else
+                                patchesPerDimension[d] = 1;
+
+                }
+
+                return null;
+        }
+
+        public static void main(String[] args) {
+                int num = 1024;
+                int pow = 0;
+                for (; num > 0; pow++)
+                        num = num >> 1;
+                pow--;
+
+                System.out.println(pow);
+        }
+
 }
