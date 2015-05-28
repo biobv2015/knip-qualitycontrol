@@ -114,43 +114,81 @@ public class Patcher {
         }
 
         /* Calculates the most even distribution of patches over the dimensions
-         * for example 4*3 is better than 6*2 (assuming that the dimensions are of approximately the same size)
+         * for example 4*4 is better than 8*2 (assuming that the dimensions are of approximately the same size)
          * Parameters:  numPatches: Total number of patches must be a power of 2
          *              dimensions: The size of each dimension (the index indicates which dimension)
          */
         public static <T> int[] calculatePatchesPerDimension(final int numPatches, final long[] dimensions) {
 
-                // Calculate which power of 2 numPatches is
-                int num = numPatches;
+                // captures the patches per dimension
+                final int[] patchesPerDimension = new int[dimensions.length];
+                long sumSizes = 0;
+                for (long d : dimensions)
+                        sumSizes += d;
+                // compute ratio of sizes of the dimensions
+                final double[] sizeRatio = new double[dimensions.length];
+                for (int d = 0; d < sizeRatio.length; d++)
+                        sizeRatio[d] = ((double) dimensions[d]) / sumSizes;
+
+                // log2 of numPatches
+                final int pow = log2(numPatches);
+                // used to keep track how many patches are already assigned
+                int powCounter = pow;
+
+                // assign patches to dimensions
+                for (int p = 0; p < patchesPerDimension.length; p++) {
+                        if (powCounter == 0) {
+                                patchesPerDimension[p] = 1;
+                        } else {
+                                patchesPerDimension[p] = (int) Math.pow(2, (int) (sizeRatio[p] * pow));
+                                powCounter -= (int) (sizeRatio[p] * pow);
+                        }
+                }
+
+                // assign left over patches to largest dimension
+                if (powCounter > 0) {
+                        patchesPerDimension[argmax(sizeRatio)] *= (int) Math.pow(2, powCounter);
+                }
+
+                return patchesPerDimension;
+        }
+
+        /* Computes the log2 for input ONLY ACCURATE FOR POWERS OF 2
+         * Parameters:  input:  The int for which the log2 is to be computed
+         * Output:  The log2 of input
+         */
+        private static int log2(final int input) {
+                int num = input;
                 int pow = 0;
                 for (; num > 0; pow++)
                         num >>= 1;
                 pow--;
+                return pow;
+        }
 
-                int avgPatches = pow / dimensions.length + 1;
+        /* Returns the index of the largest element of array
+         * Parameters:  array:  input double array
+         * Output:  Index of largest element in array
+         */
+        private static int argmax(final double[] array) {
+                int index = 0;
 
-                final int[] patchesPerDimension = new int[dimensions.length];
+                for (int i = 0; i < array.length; i++)
+                        index = (array[i] > array[index]) ? i : index;
 
-                for (int d = 0; d < dimensions.length; d++) {
-                        if (pow > 0) {
-                                patchesPerDimension[d] = (int) Math.pow(2, avgPatches);
-                                pow -= avgPatches;
-                        } else
-                                patchesPerDimension[d] = 1;
-
-                }
-
-                return null;
+                return index;
         }
 
         public static void main(String[] args) {
-                int num = 1024;
-                int pow = 0;
-                for (; num > 0; pow++)
-                        num = num >> 1;
-                pow--;
+                int numPatches = 4;
+                long[] dimensions = {100, 100};
+                int[] patchesPerDimension = calculatePatchesPerDimension(numPatches, dimensions);
 
-                System.out.println(pow);
+                System.out.print("patchesPerDimension: ");
+                for (int dim : patchesPerDimension)
+                        System.out.print(dim + " ");
+                System.out.println();
+
         }
 
 }
