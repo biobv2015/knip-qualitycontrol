@@ -4,20 +4,24 @@ import net.imglib2.Cursor;
 import net.imglib2.RandomAccess;
 import net.imglib2.img.Img;
 import net.imglib2.type.numeric.IntegerType;
+import net.imglib2.view.ExtendedRandomAccessibleInterval;
+import net.imglib2.view.Views;
 
 public class GradientMagnitudeHistogram {
 
         public static <T extends IntegerType<T>> double[] calculateGradientMagnitudeHistogram(final Img<T> img, final int min, final int max) {
-                int maxNum = (int) img.firstElement().getMaxValue();
-                int minNum = (int) img.firstElement().getMinValue();
-                int range = max - min;
+                final int maxNum = (int) img.firstElement().getMaxValue();
+                final int minNum = (int) img.firstElement().getMinValue();
+                final int rangeNum = maxNum - minNum;
+                final int range = max - min;
 
                 Cursor<T> center = img.localizingCursor();
+                ExtendedRandomAccessibleInterval<T, Img<T>> outOfBorder = Views.extendMirrorSingle(img);
 
-                RandomAccess<T> front = img.randomAccess();
-                RandomAccess<T> back = img.randomAccess();
+                RandomAccess<T> front = outOfBorder.randomAccess();
+                RandomAccess<T> back = outOfBorder.randomAccess();
 
-                final double[] histogram = new double[max - min];
+                final double[] histogram = new double[range];
 
                 while (center.hasNext()) {
                         center.fwd();
@@ -38,13 +42,13 @@ public class GradientMagnitudeHistogram {
                         gradientMagnitude = Math.sqrt(gradientMagnitude);
 
                         if ((int) gradientMagnitude >= min && (int) gradientMagnitude <= max) {
-                                histogram[(int) gradientMagnitude + min]++;
+                                histogram[(int) gradientMagnitude - min]++;
                         }
 
                 }
 
                 for (int i = 0; i < histogram.length; i++) {
-                        histogram[i] = histogram[i] / range;
+                        histogram[i] = histogram[i] / rangeNum;
                 }
 
                 return histogram;
