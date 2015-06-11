@@ -50,7 +50,6 @@ package org.knime.knip.qc.nodes.globalfeature;
 
 import java.io.File;
 
-import net.imagej.ImgPlus;
 import net.imglib2.img.Img;
 import net.imglib2.type.numeric.RealType;
 
@@ -60,6 +59,7 @@ import org.knime.core.data.DataColumnSpecCreator;
 import org.knime.core.data.DataRow;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.def.DefaultRow;
+import org.knime.core.data.def.DoubleCell;
 import org.knime.core.node.BufferedDataContainer;
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.BufferedDataTableHolder;
@@ -69,11 +69,12 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeModel;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.defaultnodesettings.SettingsModelDoubleRange;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.knip.base.data.img.ImgPlusCell;
 import org.knime.knip.base.data.img.ImgPlusCellFactory;
 import org.knime.knip.base.data.img.ImgPlusValue;
-import org.knime.knip.qualityControl.patching.Patcher;
+import org.knime.knip.qc.globalfeature.GradientMagnitudeHistogram;
 
 /**
  * Crop BitMasks or parts of images according to a Labeling
@@ -96,16 +97,16 @@ public class GlobalFeatureNodeModel<L extends Comparable<L>, T extends RealType<
          * @return SettingsModel to store img column
          */
         static SettingsModelString createImgColumnSelectionModel() {
-                return new SettingsModelString("ADRIAN", "");
+                return new SettingsModelString("GFImgColumnSelectionModel", "");
         }
 
-        static SettingsModelString createNumPatchesSelectionModel() {
-                return new SettingsModelString("NumPatches", "0");
+        static SettingsModelDoubleRange createRangeSelectionModel() {
+                return new SettingsModelDoubleRange("GFRangeSelectionModel", 0, 64);
         }
 
         /* SettingsModels */
         private SettingsModelString m_imgColumnNameModel = createImgColumnSelectionModel();
-        private SettingsModelString m_numPatchesModel = createNumPatchesSelectionModel();
+        private SettingsModelDoubleRange m_rangeModel = createRangeSelectionModel();
 
         /* Resulting BufferedDataTable */
         private BufferedDataTable m_data;
@@ -128,10 +129,14 @@ public class GlobalFeatureNodeModel<L extends Comparable<L>, T extends RealType<
         }
 
         private DataTableSpec[] createOutSpec() {
-                DataColumnSpec sourceImgSpec = new DataColumnSpecCreator("Source Image", ImgPlusCell.TYPE).createSpec();
-                DataColumnSpec patchSpec = new DataColumnSpecCreator("Patch", ImgPlusCell.TYPE).createSpec();
+                final int range = (int) m_rangeModel.getMaxRange() - (int) m_rangeModel.getMinRange();
+                DataColumnSpec[] columns = new DataColumnSpec[range + 1];
+                columns[0] = new DataColumnSpecCreator("Source Image", ImgPlusCell.TYPE).createSpec();
+                for (int i = 1; i < columns.length; i++) {
+                        columns[i] = new DataColumnSpecCreator("h" + i, DoubleCell.TYPE).createSpec();
+                }
 
-                return new DataTableSpec[] {new DataTableSpec(sourceImgSpec, patchSpec)};
+                return new DataTableSpec[] {new DataTableSpec(columns)};
         }
 
         /**
@@ -145,36 +150,33 @@ public class GlobalFeatureNodeModel<L extends Comparable<L>, T extends RealType<
                 final ImgPlusCellFactory imgCellFac = new ImgPlusCellFactory(exec);
 
                 int imgCellIdx = inData[0].getSpec().findColumnIndex(m_imgColumnNameModel.getStringValue());
-                int numPatches = Integer.parseInt(m_numPatchesModel.getStringValue());
 
                 if (imgCellIdx == -1) {
                         throw new IllegalArgumentException("No Image Column found with name: " + m_imgColumnNameModel.getStringValue());
                 }
 
+                final int min = (int) m_rangeModel.getMinRange();
+                final int max = (int) m_rangeModel.getMaxRange();
+                final int range = max - min;
+
                 for (final DataRow row : inData[0]) {
                         final ImgPlusValue<T> imgPlusValue = (ImgPlusValue<T>) row.getCell(imgCellIdx);
-                        DataCell[] cells = new DataCell[2];
+                        DataCell[] cells = new DataCell[range + 1];
 
                         // get Img from ImgPlus
                         Img<T> img = imgPlusValue.getImgPlus().getImg();
 
                         // calculate parameters for patching
-                        long[] dimensionSizes = new long[img.numDimensions()];
-                        img.dimensions(dimensionSizes);
-                        int[] dimensions = new int[img.numDimensions()];
-                        for (int i = 0; i < img.numDimensions(); i++)
-                                dimensions[i] = i;
-                        int[] patchesPerDimension = Patcher.calculatePatchesPerDimension(numPatches, dimensionSizes);
 
-                        Object[] patches = Patcher.patchImg(img, dimensions, patchesPerDimension);
+                        double[] histogram = GradientMagnitudeHistogram.calculateGradientMagnitudeHistogram(img, min, max);
 
-                        for (int p = 0; p < patches.length; p++) {
-                                // TODO: write patch into ImgPlus
-                                ImgPlus<T> impPatch = new ImgPlus<T>((Img<T>) patches[p]);
-                                cells[0] = imgCellFac.createCell(imgPlusValue.getImgPlus());
-                                cells[1] = imgCellFac.createCell(impPatch);
-                                container.addRowToTable(new DefaultRow(row.getKey().toString() + "#" + p, cells));
+                        cells[0] = imgCellFac.createCell(imgPlusValue.getImgPlus());
+
+                        for (int h = 0; h < histogram.length; h++) {
+                                cells[h + 1] = new DoubleCell(histogram[h]);
                         }
+
+                        container.addRowToTable(new DefaultRow(row.getKey().toString(), cells));
 
                 }
 
@@ -205,7 +207,7 @@ public class GlobalFeatureNodeModel<L extends Comparable<L>, T extends RealType<
         @Override
         protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
                 m_imgColumnNameModel.loadSettingsFrom(settings);
-                m_numPatchesModel.loadSettingsFrom(settings);
+                m_rangeModel.loadSettingsFrom(settings);
         }
 
         /**
@@ -230,7 +232,7 @@ public class GlobalFeatureNodeModel<L extends Comparable<L>, T extends RealType<
         @Override
         protected void saveSettingsTo(final NodeSettingsWO settings) {
                 m_imgColumnNameModel.saveSettingsTo(settings);
-                m_numPatchesModel.saveSettingsTo(settings);
+                m_rangeModel.saveSettingsTo(settings);
         }
 
         /**
@@ -247,6 +249,6 @@ public class GlobalFeatureNodeModel<L extends Comparable<L>, T extends RealType<
         @Override
         protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
                 m_imgColumnNameModel.validateSettings(settings);
-                m_numPatchesModel.validateSettings(settings);
+                m_rangeModel.validateSettings(settings);
         }
 }
