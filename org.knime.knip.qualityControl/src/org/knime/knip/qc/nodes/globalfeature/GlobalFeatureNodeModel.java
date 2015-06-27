@@ -129,7 +129,7 @@ public class GlobalFeatureNodeModel<L extends Comparable<L>, T extends RealType<
         }
 
         private DataTableSpec[] createOutSpec() {
-                final int range = (int) m_rangeModel.getMaxRange() - (int) m_rangeModel.getMinRange();
+                final int range = (int) m_rangeModel.getMaxRange() - (int) m_rangeModel.getMinRange() + 1;
                 DataColumnSpec[] columns = new DataColumnSpec[range + 1];
                 columns[0] = new DataColumnSpecCreator("Source Image", ImgPlusCell.TYPE).createSpec();
                 for (int i = 1; i < columns.length; i++) {
@@ -157,7 +157,7 @@ public class GlobalFeatureNodeModel<L extends Comparable<L>, T extends RealType<
 
                 final int min = (int) m_rangeModel.getMinRange();
                 final int max = (int) m_rangeModel.getMaxRange();
-                final int range = max - min;
+                final int range = max - min + 1;
 
                 for (final DataRow row : inData[0]) {
                         final ImgPlusValue<T> imgPlusValue = (ImgPlusValue<T>) row.getCell(imgCellIdx);
