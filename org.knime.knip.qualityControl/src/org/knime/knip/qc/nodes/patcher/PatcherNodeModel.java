@@ -160,6 +160,9 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                         }
                 }
 
+                int rowIdx = 0;
+                final int rowCount = inData[0].getRowCount();
+
                 final BufferedDataContainer container = exec.createDataContainer(createOutSpec()[0]);
                 final ImgPlusCellFactory imgCellFac = new ImgPlusCellFactory(exec);
 
@@ -195,6 +198,8 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                                 container.addRowToTable(new DefaultRow(row.getKey().toString() + "#" + p, cells));
                         }
 
+                        exec.checkCanceled();
+                        exec.setProgress((double) ++rowIdx / rowCount);
                 }
 
                 container.close();
