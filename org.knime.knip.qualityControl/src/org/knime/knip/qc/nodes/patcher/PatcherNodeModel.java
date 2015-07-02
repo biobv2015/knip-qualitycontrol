@@ -73,6 +73,7 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.knip.base.data.img.ImgPlusCell;
 import org.knime.knip.base.data.img.ImgPlusCellFactory;
 import org.knime.knip.base.data.img.ImgPlusValue;
+import org.knime.knip.base.node.NodeUtils;
 import org.knime.knip.qualityControl.patching.Patcher;
 
 /**
@@ -122,7 +123,15 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
          */
         @Override
         protected DataTableSpec[] configure(final DataTableSpec[] inSpecs) throws InvalidSettingsException {
-                // TODO check inspec for img value column
+                int imgColIdx = inSpecs[0].findColumnIndex(m_imgColumnNameModel.getStringValue());
+
+                if (imgColIdx == -1) {
+                        if (NodeUtils.autoOptionalColumnSelection(inSpecs[0], m_imgColumnNameModel, ImgPlusValue.class) >= 0) {
+                                setWarningMessage("Auto-configure Label Column: " + m_imgColumnNameModel.getStringValue());
+                        } else {
+                                throw new InvalidSettingsException("No column selected!");
+                        }
+                }
 
                 return createOutSpec();
         }
@@ -140,6 +149,16 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         @Override
         @SuppressWarnings({"unchecked"})
         protected BufferedDataTable[] execute(final BufferedDataTable[] inData, final ExecutionContext exec) throws Exception {
+
+                // find img column index
+                int imgColIdx = inData[0].getDataTableSpec().findColumnIndex(m_imgColumnNameModel.getStringValue());
+                if (imgColIdx == -1) {
+                        if (NodeUtils.autoOptionalColumnSelection(inData[0].getDataTableSpec(), m_imgColumnNameModel, ImgPlusValue.class) >= 0) {
+                                setWarningMessage("Auto-configure Label Column: " + m_imgColumnNameModel.getStringValue());
+                        } else {
+                                throw new InvalidSettingsException("No column selected!");
+                        }
+                }
 
                 final BufferedDataContainer container = exec.createDataContainer(createOutSpec()[0]);
                 final ImgPlusCellFactory imgCellFac = new ImgPlusCellFactory(exec);
