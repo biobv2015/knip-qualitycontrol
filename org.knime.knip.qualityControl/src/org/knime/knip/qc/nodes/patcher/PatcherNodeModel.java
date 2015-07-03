@@ -76,7 +76,6 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.knip.base.data.img.ImgPlusCell;
 import org.knime.knip.base.data.img.ImgPlusCellFactory;
 import org.knime.knip.base.data.img.ImgPlusValue;
-import org.knime.knip.base.node.NodeUtils;
 import org.knime.knip.qualityControl.patching.Patcher;
 
 /**
@@ -154,6 +153,7 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                                 }
                         }
                         m_imgColumnSelectionModel.setIncludeList(autoIncluded);
+                        setWarningMessage("Auto-configure: All image columns are selected.");
                 }
 
                 return createOutSpec();
@@ -173,6 +173,7 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         @SuppressWarnings({"unchecked"})
         protected BufferedDataTable[] execute(final BufferedDataTable[] inData, final ExecutionContext exec) throws Exception {
 
+                /*
                 // find img column index
                 int imgColIdx = inData[0].getDataTableSpec().findColumnIndex(m_imgColumnNameModel.getStringValue());
                 if (imgColIdx == -1) {
@@ -182,6 +183,7 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                                 throw new InvalidSettingsException("No column selected!");
                         }
                 }
+                */
 
                 int rowIdx = 0;
                 final int rowCount = inData[0].getRowCount();
