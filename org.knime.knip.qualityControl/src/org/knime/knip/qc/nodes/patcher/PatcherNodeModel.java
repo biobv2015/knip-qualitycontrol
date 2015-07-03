@@ -69,6 +69,7 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeModel;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.defaultnodesettings.SettingsModelFilterString;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.knip.base.data.img.ImgPlusCell;
 import org.knime.knip.base.data.img.ImgPlusCellFactory;
@@ -96,8 +97,8 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
          *
          * @return SettingsModel to store img column
          */
-        static SettingsModelString createImgColumnSelectionModel() {
-                return new SettingsModelString("ADRIAN", "");
+        static SettingsModelFilterString createImgColumnSelectionModel() {
+                return new SettingsModelFilterString("columnSelection");
         }
 
         static SettingsModelString createNumPatchesSelectionModel() {
@@ -105,7 +106,7 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         }
 
         /* SettingsModels */
-        private SettingsModelString m_imgColumnNameModel = createImgColumnSelectionModel();
+        private SettingsModelFilterString m_imgColumnNameModel = createImgColumnSelectionModel();
         private SettingsModelString m_numPatchesModel = createNumPatchesSelectionModel();
 
         /* Resulting BufferedDataTable */
