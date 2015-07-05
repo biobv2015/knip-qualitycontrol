@@ -108,8 +108,11 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         }
 
         static SettingsModelInteger[] createNumPatchesPerDimensionModel() {
-                return new SettingsModelInteger[] {new SettingsModelInteger("patchesPerDimensionModelX", 1),
-                                new SettingsModelInteger("patchesPerDimensionModelY", 1)};
+                SettingsModelInteger patchesPerDimensionModelX = new SettingsModelInteger("patchesPerDimensionModelX", 1);
+                SettingsModelInteger patchesPerDimensionModelY = new SettingsModelInteger("patchesPerDimensionModelY", 1);
+                patchesPerDimensionModelX.setEnabled(false);
+                patchesPerDimensionModelY.setEnabled(false);
+                return new SettingsModelInteger[] {patchesPerDimensionModelX, patchesPerDimensionModelY};
         }
 
         static SettingsModelString createPatchingMethodSwitchModel() {
