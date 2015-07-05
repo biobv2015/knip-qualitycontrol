@@ -71,7 +71,6 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeModel;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
-import org.knime.core.node.defaultnodesettings.SettingsModelFilterString;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.knip.base.data.img.ImgPlusCell;
 import org.knime.knip.base.data.img.ImgPlusCellFactory;
@@ -98,8 +97,8 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
          *
          * @return SettingsModel to store img column
          */
-        static SettingsModelFilterString createImgColumnSelectionModel() {
-                return new SettingsModelFilterString("columnSelection");
+        static SettingsModelString createImgColumnSelectionModel() {
+                return new SettingsModelString("ADRIAN", "");
         }
 
         static SettingsModelString createNumPatchesSelectionModel() {
@@ -107,7 +106,11 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         }
 
         /* SettingsModels */
+<<<<<<< HEAD
         private SettingsModelFilterString m_imgColumnSelectionModel = createImgColumnSelectionModel();
+=======
+        private SettingsModelString m_imgColumnNameModel = createImgColumnSelectionModel();
+>>>>>>> parent of 79248ae... Dialog for selection of multiple columns
         private SettingsModelString m_numPatchesModel = createNumPatchesSelectionModel();
 
         /* Resulting BufferedDataTable */
