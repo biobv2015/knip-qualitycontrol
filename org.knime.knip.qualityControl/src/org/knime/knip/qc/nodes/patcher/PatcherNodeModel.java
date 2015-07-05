@@ -49,8 +49,6 @@
 package org.knime.knip.qc.nodes.patcher;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 
 import net.imagej.ImgPlus;
 import net.imglib2.img.Img;
@@ -75,6 +73,7 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.knip.base.data.img.ImgPlusCell;
 import org.knime.knip.base.data.img.ImgPlusCellFactory;
 import org.knime.knip.base.data.img.ImgPlusValue;
+import org.knime.knip.base.node.NodeUtils;
 import org.knime.knip.qualityControl.patching.Patcher;
 
 /**
@@ -106,11 +105,11 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         }
 
         /* SettingsModels */
-<<<<<<< HEAD
-        private SettingsModelFilterString m_imgColumnSelectionModel = createImgColumnSelectionModel();
-=======
+
+        private SettingsModelString m_imgColumnSelectionModel = createImgColumnSelectionModel();
+
         private SettingsModelString m_imgColumnNameModel = createImgColumnSelectionModel();
->>>>>>> parent of 79248ae... Dialog for selection of multiple columns
+
         private SettingsModelString m_numPatchesModel = createNumPatchesSelectionModel();
 
         /* Resulting BufferedDataTable */
@@ -128,7 +127,7 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
          */
         @Override
         protected DataTableSpec[] configure(final DataTableSpec[] inSpecs) throws InvalidSettingsException {
-                /*
+
                 int imgColIdx = inSpecs[0].findColumnIndex(m_imgColumnNameModel.getStringValue());
 
                 if (imgColIdx == -1) {
@@ -137,26 +136,6 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                         } else {
                                 throw new InvalidSettingsException("No column selected!");
                         }
-                }
-                */
-                // check selected columns
-                final List<String> includedCols = m_imgColumnSelectionModel.getIncludeList();
-
-                if (includedCols.isEmpty()) {
-                        // check if there are any compatible columns in the input table
-                        if (!inSpecs[0].containsCompatibleType(ImgPlusValue.class)) {
-                                throw new InvalidSettingsException("Input table contains no image column!");
-                        }
-                        // add all compatible columns to selected columns
-                        final ArrayList<String> autoIncluded = new ArrayList<String>();
-                        for (int c = 0; c < inSpecs[0].getNumColumns(); c++) {
-                                final DataColumnSpec col = inSpecs[0].getColumnSpec(c);
-                                if (col.getType().isCompatible(ImgPlusValue.class)) {
-                                        autoIncluded.add(inSpecs[0].getName());
-                                }
-                        }
-                        m_imgColumnSelectionModel.setIncludeList(autoIncluded);
-                        setWarningMessage("Auto-configure: All image columns are selected.");
                 }
 
                 return createOutSpec();
