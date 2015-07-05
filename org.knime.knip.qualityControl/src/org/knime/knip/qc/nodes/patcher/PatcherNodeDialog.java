@@ -40,13 +40,14 @@ public class PatcherNodeDialog<L extends Comparable<L>> extends DefaultNodeSetti
                 patchingMethodSwitch.addChangeListener(new ChangeListener() {
                         public void stateChanged(final ChangeEvent e) {
                                 if (patchingMethodSwitch.getStringValue().equals(PatcherNodeModel.PATCHING_METHOD_SWITCH_OPTIONS[0])) {
-                                        totalNumPatches.setEnabled(false);
-                                        patchesPerDimension[0].setEnabled(true);
-                                        patchesPerDimension[1].setEnabled(true);
-                                } else {
                                         totalNumPatches.setEnabled(true);
                                         patchesPerDimension[0].setEnabled(false);
                                         patchesPerDimension[1].setEnabled(false);
+                                } else {
+                                        System.out.println(patchingMethodSwitch.getStringValue());
+                                        totalNumPatches.setEnabled(false);
+                                        patchesPerDimension[0].setEnabled(true);
+                                        patchesPerDimension[1].setEnabled(true);
                                 }
                         }
                 });
