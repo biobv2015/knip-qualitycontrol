@@ -105,8 +105,8 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                 return new SettingsModelString("ADRIAN", "");
         }
 
-        static SettingsModelString createTotalNumPatchesSelectionModel() {
-                return new SettingsModelString("NumPatches", "0");
+        static SettingsModelInteger createTotalNumPatchesSelectionModel() {
+                return new SettingsModelIntegerBounded("totalNumPatches", 0, 0, Integer.MAX_VALUE);
         }
 
         static SettingsModelInteger[] createNumPatchesPerDimensionModel() {
@@ -125,7 +125,7 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
 
         private SettingsModelString m_imgColumnNameModel = createImgColumnSelectionModel();
 
-        private SettingsModelString m_totalNumPatchesModel = createTotalNumPatchesSelectionModel();
+        private SettingsModelInteger m_totalNumPatchesModel = createTotalNumPatchesSelectionModel();
 
         private SettingsModelInteger[] m_numPatchesPerDimensionModels = createNumPatchesPerDimensionModel();
 
@@ -158,7 +158,11 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                 }
 
                 if (m_numPatchesPerDimensionModels[0].getIntValue() < 1 || m_numPatchesPerDimensionModels[1].getIntValue() < 1) {
-                        throw new InvalidSettingsException("There must be atleast one patch per dimension!");
+                        throw new InvalidSettingsException("There must be at least one patch per dimension!");
+                }
+
+                if (m_totalNumPatchesModel.getIntValue() < 0) {
+                        throw new InvalidSettingsException("The minimal number of patches is 1 (2^0)!");
                 }
 
                 return createOutSpec();
@@ -178,7 +182,6 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         @SuppressWarnings({"unchecked"})
         protected BufferedDataTable[] execute(final BufferedDataTable[] inData, final ExecutionContext exec) throws Exception {
 
-                /*
                 // find img column index
                 int imgColIdx = inData[0].getDataTableSpec().findColumnIndex(m_imgColumnNameModel.getStringValue());
                 if (imgColIdx == -1) {
@@ -188,7 +191,6 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                                 throw new InvalidSettingsException("No column selected!");
                         }
                 }
-                */
 
                 int rowIdx = 0;
                 final int rowCount = inData[0].getRowCount();
@@ -197,7 +199,7 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                 final ImgPlusCellFactory imgCellFac = new ImgPlusCellFactory(exec);
 
                 int imgCellIdx = inData[0].getSpec().findColumnIndex(m_imgColumnNameModel.getStringValue());
-                int numPatches = Integer.parseInt(m_totalNumPatchesModel.getStringValue());
+                int numPatches = (int) Math.pow(2, m_totalNumPatchesModel.getIntValue());
 
                 if (imgCellIdx == -1) {
                         throw new IllegalArgumentException("No Image Column found with name: " + m_imgColumnNameModel.getStringValue());
