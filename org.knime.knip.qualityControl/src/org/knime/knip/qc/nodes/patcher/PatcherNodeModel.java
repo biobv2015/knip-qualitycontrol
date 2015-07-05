@@ -69,6 +69,7 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeModel;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.defaultnodesettings.SettingsModelInteger;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.knip.base.data.img.ImgPlusCell;
 import org.knime.knip.base.data.img.ImgPlusCellFactory;
@@ -91,6 +92,8 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
 
         static final String[] BACKGROUND_OPTIONS = new String[] {"Min Value of Result", "Max Value of Result", "Zero", "Source"};
 
+        static final String[] PATCHING_METHOD_SWITCH_OPTIONS = new String[] {"Total number of patches", "Number of patches per dimension (x and y)"};
+
         /**
          * Helper
          *
@@ -100,8 +103,17 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                 return new SettingsModelString("ADRIAN", "");
         }
 
-        static SettingsModelString createNumPatchesSelectionModel() {
+        static SettingsModelString createTotalNumPatchesSelectionModel() {
                 return new SettingsModelString("NumPatches", "0");
+        }
+
+        static SettingsModelInteger[] createNumPatchesPerDimensionModel() {
+                return new SettingsModelInteger[] {new SettingsModelInteger("patchesPerDimensionModelX", 1),
+                                new SettingsModelInteger("patchesPerDimensionModelY", 1)};
+        }
+
+        static SettingsModelString createPatchingMethodSwitchModel() {
+                return new SettingsModelString("patchingMethodSwitch", PATCHING_METHOD_SWITCH_OPTIONS[0]);
         }
 
         /* SettingsModels */
@@ -110,7 +122,11 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
 
         private SettingsModelString m_imgColumnNameModel = createImgColumnSelectionModel();
 
-        private SettingsModelString m_numPatchesModel = createNumPatchesSelectionModel();
+        private SettingsModelString m_totalNumPatchesModel = createTotalNumPatchesSelectionModel();
+
+        private SettingsModelInteger[] m_numPatchesPerDimensionModel = createNumPatchesPerDimensionModel();
+
+        private SettingsModelString m_patchingMethodSwitchModel = createPatchingMethodSwitchModel();
 
         /* Resulting BufferedDataTable */
         private BufferedDataTable m_data;
@@ -174,7 +190,7 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                 final ImgPlusCellFactory imgCellFac = new ImgPlusCellFactory(exec);
 
                 int imgCellIdx = inData[0].getSpec().findColumnIndex(m_imgColumnNameModel.getStringValue());
-                int numPatches = Integer.parseInt(m_numPatchesModel.getStringValue());
+                int numPatches = Integer.parseInt(m_totalNumPatchesModel.getStringValue());
 
                 if (imgCellIdx == -1) {
                         throw new IllegalArgumentException("No Image Column found with name: " + m_imgColumnNameModel.getStringValue());
@@ -236,7 +252,7 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         @Override
         protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
                 m_imgColumnNameModel.loadSettingsFrom(settings);
-                m_numPatchesModel.loadSettingsFrom(settings);
+                m_totalNumPatchesModel.loadSettingsFrom(settings);
         }
 
         /**
@@ -261,7 +277,7 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         @Override
         protected void saveSettingsTo(final NodeSettingsWO settings) {
                 m_imgColumnNameModel.saveSettingsTo(settings);
-                m_numPatchesModel.saveSettingsTo(settings);
+                m_totalNumPatchesModel.saveSettingsTo(settings);
         }
 
         /**
@@ -278,6 +294,6 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         @Override
         protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
                 m_imgColumnNameModel.validateSettings(settings);
-                m_numPatchesModel.validateSettings(settings);
+                m_totalNumPatchesModel.validateSettings(settings);
         }
 }
