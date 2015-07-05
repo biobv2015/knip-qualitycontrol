@@ -127,7 +127,7 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
 
         private SettingsModelString m_totalNumPatchesModel = createTotalNumPatchesSelectionModel();
 
-        private SettingsModelInteger[] m_numPatchesPerDimensionModel = createNumPatchesPerDimensionModel();
+        private SettingsModelInteger[] m_numPatchesPerDimensionModels = createNumPatchesPerDimensionModel();
 
         private SettingsModelString m_patchingMethodSwitchModel = createPatchingMethodSwitchModel();
 
@@ -155,6 +155,10 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                         } else {
                                 throw new InvalidSettingsException("No column selected!");
                         }
+                }
+
+                if (m_numPatchesPerDimensionModels[0].getIntValue() < 1 || m_numPatchesPerDimensionModels[1].getIntValue() < 1) {
+                        throw new InvalidSettingsException("There must be atleast one patch per dimension!");
                 }
 
                 return createOutSpec();
@@ -217,8 +221,8 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                         if (m_patchingMethodSwitchModel.getStringValue().equals(PATCHING_METHOD_SWITCH_OPTIONS[0])) {
                                 patchesPerDimension = Patcher.calculatePatchesPerDimension(numPatches, dimensionSizes);
                         } else {
-                                patchesPerDimension = new int[] {m_numPatchesPerDimensionModel[0].getIntValue(),
-                                                m_numPatchesPerDimensionModel[1].getIntValue()};
+                                patchesPerDimension = new int[] {m_numPatchesPerDimensionModels[0].getIntValue(),
+                                                m_numPatchesPerDimensionModels[1].getIntValue()};
                         }
 
                         Object[] patches = Patcher.patchImg(img, dimensions, patchesPerDimension);
@@ -264,8 +268,8 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                 m_imgColumnNameModel.loadSettingsFrom(settings);
                 m_totalNumPatchesModel.loadSettingsFrom(settings);
                 m_patchingMethodSwitchModel.loadSettingsFrom(settings);
-                m_numPatchesPerDimensionModel[0].loadSettingsFrom(settings);
-                m_numPatchesPerDimensionModel[1].loadSettingsFrom(settings);
+                m_numPatchesPerDimensionModels[0].loadSettingsFrom(settings);
+                m_numPatchesPerDimensionModels[1].loadSettingsFrom(settings);
         }
 
         /**
@@ -292,8 +296,8 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                 m_imgColumnNameModel.saveSettingsTo(settings);
                 m_totalNumPatchesModel.saveSettingsTo(settings);
                 m_patchingMethodSwitchModel.saveSettingsTo(settings);
-                m_numPatchesPerDimensionModel[0].saveSettingsTo(settings);
-                m_numPatchesPerDimensionModel[1].saveSettingsTo(settings);
+                m_numPatchesPerDimensionModels[0].saveSettingsTo(settings);
+                m_numPatchesPerDimensionModels[1].saveSettingsTo(settings);
         }
 
         /**
@@ -312,7 +316,7 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                 m_imgColumnNameModel.validateSettings(settings);
                 m_totalNumPatchesModel.validateSettings(settings);
                 m_patchingMethodSwitchModel.validateSettings(settings);
-                m_numPatchesPerDimensionModel[0].validateSettings(settings);
-                m_numPatchesPerDimensionModel[1].validateSettings(settings);
+                m_numPatchesPerDimensionModels[0].validateSettings(settings);
+                m_numPatchesPerDimensionModels[1].validateSettings(settings);
         }
 }
