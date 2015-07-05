@@ -212,7 +212,14 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                         int[] dimensions = new int[img.numDimensions()];
                         for (int i = 0; i < img.numDimensions(); i++)
                                 dimensions[i] = i;
-                        int[] patchesPerDimension = Patcher.calculatePatchesPerDimension(numPatches, dimensionSizes);
+                        int[] patchesPerDimension = null;
+
+                        if (m_totalNumPatchesModel.isEnabled()) {
+                                patchesPerDimension = Patcher.calculatePatchesPerDimension(numPatches, dimensionSizes);
+                        } else {
+                                patchesPerDimension = new int[] {m_numPatchesPerDimensionModel[0].getIntValue(),
+                                                m_numPatchesPerDimensionModel[1].getIntValue()};
+                        }
 
                         Object[] patches = Patcher.patchImg(img, dimensions, patchesPerDimension);
 
