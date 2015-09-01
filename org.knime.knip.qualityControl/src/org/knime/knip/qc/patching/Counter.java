@@ -1,4 +1,4 @@
-package org.knime.knip.qualityControl.patching;
+package org.knime.knip.qc.patching;
 
 public class Counter {
         private int[] counter;
