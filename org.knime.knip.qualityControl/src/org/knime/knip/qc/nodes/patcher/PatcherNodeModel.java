@@ -69,19 +69,20 @@ import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeModel;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.defaultnodesettings.SettingsModelInteger;
+import org.knime.core.node.defaultnodesettings.SettingsModelIntegerBounded;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.knip.base.data.img.ImgPlusCell;
 import org.knime.knip.base.data.img.ImgPlusCellFactory;
 import org.knime.knip.base.data.img.ImgPlusValue;
-import org.knime.knip.qualityControl.patching.Patcher;
+import org.knime.knip.base.node.NodeUtils;
+import org.knime.knip.qc.patching.Patcher;
 
 /**
- * Crop BitMasks or parts of images according to a Labeling
+ * Cut image into patches of mainly the same size
  *
- * @author <a href="mailto:dietzc85@googlemail.com">Christian Dietz</a>
- * @author <a href="mailto:horn_martin@gmx.de">Martin Horn</a>
- * @author <a href="mailto:michael.zinsmaier@googlemail.com">Michael
- *         Zinsmaier</a>
+ * @author <a href="mailto:adrian.nembach@uni-konstanz.de">Adrian Nembach</a>
+ * 
  * @param <L>
  * @param <T>
  */
@@ -89,6 +90,9 @@ import org.knime.knip.qualityControl.patching.Patcher;
 public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> extends NodeModel implements BufferedDataTableHolder {
 
         static final String[] BACKGROUND_OPTIONS = new String[] {"Min Value of Result", "Max Value of Result", "Zero", "Source"};
+
+        static final String[] PATCHING_METHOD_SWITCH_OPTIONS = new String[] {"Total number of patches",
+                        "Number of patches per dimension (first and second)"};
 
         /**
          * Helper
@@ -99,13 +103,31 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                 return new SettingsModelString("ADRIAN", "");
         }
 
-        static SettingsModelString createNumPatchesSelectionModel() {
-                return new SettingsModelString("NumPatches", "0");
+        static SettingsModelInteger createTotalNumPatchesSelectionModel() {
+                return new SettingsModelIntegerBounded("totalNumPatches", 0, 0, Integer.MAX_VALUE);
+        }
+
+        static SettingsModelInteger[] createNumPatchesPerDimensionModel() {
+                SettingsModelInteger patchesPerDimensionModelX = new SettingsModelIntegerBounded("patchesPerDimensionModelX", 1, 1, Integer.MAX_VALUE);
+                SettingsModelInteger patchesPerDimensionModelY = new SettingsModelIntegerBounded("patchesPerDimensionModelY", 1, 1, Integer.MAX_VALUE);
+                patchesPerDimensionModelX.setEnabled(false);
+                patchesPerDimensionModelY.setEnabled(false);
+                return new SettingsModelInteger[] {patchesPerDimensionModelX, patchesPerDimensionModelY};
+        }
+
+        static SettingsModelString createPatchingMethodSwitchModel() {
+                return new SettingsModelString("patchingMethodSwitch", PATCHING_METHOD_SWITCH_OPTIONS[0]);
         }
 
         /* SettingsModels */
+
         private SettingsModelString m_imgColumnNameModel = createImgColumnSelectionModel();
-        private SettingsModelString m_numPatchesModel = createNumPatchesSelectionModel();
+
+        private SettingsModelInteger m_totalNumPatchesModel = createTotalNumPatchesSelectionModel();
+
+        private SettingsModelInteger[] m_numPatchesPerDimensionModels = createNumPatchesPerDimensionModel();
+
+        private SettingsModelString m_patchingMethodSwitchModel = createPatchingMethodSwitchModel();
 
         /* Resulting BufferedDataTable */
         private BufferedDataTable m_data;
@@ -122,7 +144,24 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
          */
         @Override
         protected DataTableSpec[] configure(final DataTableSpec[] inSpecs) throws InvalidSettingsException {
-                // TODO check inspec for img value column
+
+                int imgColIdx = inSpecs[0].findColumnIndex(m_imgColumnNameModel.getStringValue());
+
+                if (imgColIdx == -1) {
+                        if (NodeUtils.autoOptionalColumnSelection(inSpecs[0], m_imgColumnNameModel, ImgPlusValue.class) >= 0) {
+                                setWarningMessage("Auto-configure Label Column: " + m_imgColumnNameModel.getStringValue());
+                        } else {
+                                throw new InvalidSettingsException("No column selected!");
+                        }
+                }
+
+                if (m_numPatchesPerDimensionModels[0].getIntValue() < 1 || m_numPatchesPerDimensionModels[1].getIntValue() < 1) {
+                        throw new InvalidSettingsException("There must be at least one patch per dimension!");
+                }
+
+                if (m_totalNumPatchesModel.getIntValue() < 0) {
+                        throw new InvalidSettingsException("The minimal number of patches is 1 (2^0)!");
+                }
 
                 return createOutSpec();
         }
@@ -141,11 +180,24 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         @SuppressWarnings({"unchecked"})
         protected BufferedDataTable[] execute(final BufferedDataTable[] inData, final ExecutionContext exec) throws Exception {
 
+                // find img column index
+                int imgColIdx = inData[0].getDataTableSpec().findColumnIndex(m_imgColumnNameModel.getStringValue());
+                if (imgColIdx == -1) {
+                        if (NodeUtils.autoOptionalColumnSelection(inData[0].getDataTableSpec(), m_imgColumnNameModel, ImgPlusValue.class) >= 0) {
+                                setWarningMessage("Auto-configure Label Column: " + m_imgColumnNameModel.getStringValue());
+                        } else {
+                                throw new InvalidSettingsException("No column selected!");
+                        }
+                }
+
+                int rowIdx = 0;
+                final int rowCount = inData[0].getRowCount();
+
                 final BufferedDataContainer container = exec.createDataContainer(createOutSpec()[0]);
                 final ImgPlusCellFactory imgCellFac = new ImgPlusCellFactory(exec);
 
                 int imgCellIdx = inData[0].getSpec().findColumnIndex(m_imgColumnNameModel.getStringValue());
-                int numPatches = Integer.parseInt(m_numPatchesModel.getStringValue());
+                int numPatches = (int) Math.pow(2, m_totalNumPatchesModel.getIntValue());
 
                 if (imgCellIdx == -1) {
                         throw new IllegalArgumentException("No Image Column found with name: " + m_imgColumnNameModel.getStringValue());
@@ -164,7 +216,21 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                         int[] dimensions = new int[img.numDimensions()];
                         for (int i = 0; i < img.numDimensions(); i++)
                                 dimensions[i] = i;
-                        int[] patchesPerDimension = Patcher.calculatePatchesPerDimension(numPatches, dimensionSizes);
+                        int[] patchesPerDimension = null;
+
+                        if (m_patchingMethodSwitchModel.getStringValue().equals(PATCHING_METHOD_SWITCH_OPTIONS[0])) {
+                                patchesPerDimension = Patcher.calculatePatchesPerDimension(numPatches, dimensionSizes);
+                        } else {
+                                patchesPerDimension = new int[img.numDimensions()];
+                                patchesPerDimension[0] = m_numPatchesPerDimensionModels[0].getIntValue();
+                                patchesPerDimension[1] = m_numPatchesPerDimensionModels[1].getIntValue();
+                                // The remaining dimensions need to be set to one
+                                if (patchesPerDimension.length > 2) {
+                                        for (int d = 2; d < patchesPerDimension.length; d++) {
+                                                patchesPerDimension[d] = 1;
+                                        }
+                                }
+                        }
 
                         Object[] patches = Patcher.patchImg(img, dimensions, patchesPerDimension);
 
@@ -176,6 +242,8 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                                 container.addRowToTable(new DefaultRow(row.getKey().toString() + "#" + p, cells));
                         }
 
+                        exec.checkCanceled();
+                        exec.setProgress((double) ++rowIdx / rowCount);
                 }
 
                 container.close();
@@ -205,7 +273,10 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         @Override
         protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
                 m_imgColumnNameModel.loadSettingsFrom(settings);
-                m_numPatchesModel.loadSettingsFrom(settings);
+                m_totalNumPatchesModel.loadSettingsFrom(settings);
+                m_patchingMethodSwitchModel.loadSettingsFrom(settings);
+                m_numPatchesPerDimensionModels[0].loadSettingsFrom(settings);
+                m_numPatchesPerDimensionModels[1].loadSettingsFrom(settings);
         }
 
         /**
@@ -230,7 +301,10 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         @Override
         protected void saveSettingsTo(final NodeSettingsWO settings) {
                 m_imgColumnNameModel.saveSettingsTo(settings);
-                m_numPatchesModel.saveSettingsTo(settings);
+                m_totalNumPatchesModel.saveSettingsTo(settings);
+                m_patchingMethodSwitchModel.saveSettingsTo(settings);
+                m_numPatchesPerDimensionModels[0].saveSettingsTo(settings);
+                m_numPatchesPerDimensionModels[1].saveSettingsTo(settings);
         }
 
         /**
@@ -247,6 +321,9 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         @Override
         protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
                 m_imgColumnNameModel.validateSettings(settings);
-                m_numPatchesModel.validateSettings(settings);
+                m_totalNumPatchesModel.validateSettings(settings);
+                m_patchingMethodSwitchModel.validateSettings(settings);
+                m_numPatchesPerDimensionModels[0].validateSettings(settings);
+                m_numPatchesPerDimensionModels[1].validateSettings(settings);
         }
 }

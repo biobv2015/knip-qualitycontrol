@@ -1,4 +1,4 @@
-package org.knime.knip.qualityControl.patching;
+package org.knime.knip.qc.patching;
 
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccess;

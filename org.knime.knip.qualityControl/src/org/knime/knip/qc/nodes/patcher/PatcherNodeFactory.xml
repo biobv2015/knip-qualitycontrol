@@ -3,78 +3,50 @@
 <knimeNode type="Manipulator" icon="cropper.png">
 	<name>Patcher</name>
 	<shortDescription>
-		Crops segments, given by a labeling, of an image.
+		Cuts images into patches of mainly the same size
 	</shortDescription>
 
 	<fullDescription>
 		<intro>
-			Crops segments, given by a labeling, of an image. The pixels
-			that are
-			not defined by the according segment a filled either with
-			the maximum,
-			minimum pixel value or zero.
-
-			Two cases:
+			Cuts image into the number of patches that is selected.
+			Most of the patches have the same size but the last in each row and column can be slightly smaller.
+			There are two options to define the number of patches
 			<ul>
-				<li>No additional Image: BitMasks of the ROIs will be
-					extracted.
+				<li>Define the total number of patches in powers of 2.
 				</li>
 				<li>
-					Additional Image: ROI will be filled with the values of the
-					provided image.
+					Define the number of patches for the first and second dimension (minimum number is 1).
 				</li>
 			</ul>
 		</intro>
 		<tab name="Options">
 
-			<option name="Labeling Column">Labeling representing the Region of Interests
-				(ROIs) to be cropped.
+			<option name="Column Selection">Select the column containing the image to be patched.
 			</option>
 
-			<option name="Image Column (optional)">How the image pixel will be organised in the
-				memory. May have impact on the runtime of algorithms.
+			<option name="Patching Method">Select how you want to define the number of patches.
+			<ul>
+			<li>Select total number of patches (in powers of 2)</li>
+			<li>Select number of patches for the first and second dimension</li>
+			</ul>
 			</option>
-			<option name="Background">
-				As we crop an labeling into a rectangular
-				bounding box image, some
-				pixels may not be covered by the ROI. Select the value of these
-				pixels.
-				<ul>
-					<li>Minimum value of result image</li>
-					<li>Maximum value of result image</li>
-					<li>Set value to zero</li>
-				</ul>
+			<option name="Total number of patches">
+				The image will be cut into 2 to the power of the number you select
 			</option>
-		</tab>
-		<tab name="Segment Label Filter">
-			<option name="Filter on segment labels">
-				Only labels which hold
-				the given rule considered
-				during the calculation.
+			<option name="Number of patches in first dimension">
+				Number of patches in the first dimension.
 			</option>
-			<option name="Append labels of overlapping segments">
-				If true, the labels of overlapping segments will
-				be appended in an additional column (';'-separated).
+			<option name="Number of patches in second dimension">
+				Number of patches in the second dimension.
 			</option>
-			<option name="Overlapping segments do NOT need to completely overlap">
-				If selected, segments will also be counted as
-				overlapping, if so don't
-				overlap completely.
-			</option>
-
-			<option name="Filter on overlapping segment labels">
-				Only the labels that comply with the specified
-				rules will appear in the list of overlapping labels.
-			</option>
-		</tab>
+			</tab>
 	</fullDescription>
 	<ports>
-		<inPort index="0" name="Images">Images and corresponding Labeling in
-			same column
+		<inPort index="0" name="Images">Images
 		</inPort>
-		<outPort index="0" name="Cropped Segments">Cropped Segments</outPort>
+		<outPort index="0" name="Patches">Patches</outPort>
 	</ports>
 	<views>
-		<view name="Table Cell View" index="0">Cropped Segments</view>
+		<view name="Table Cell View" index="0">Patches</view>
 	</views>
 </knimeNode>
