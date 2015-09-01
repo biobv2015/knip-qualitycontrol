@@ -18,7 +18,7 @@ public class PatcherNodeDialog<L extends Comparable<L>> extends DefaultNodeSetti
          */
         @SuppressWarnings("unchecked")
         public PatcherNodeDialog() {
-                createNewGroup("Column selection:");
+                createNewGroup("Column Selection:");
                 addDialogComponent(new DialogComponentColumnNameSelection(PatcherNodeModel.createImgColumnSelectionModel(), "Column Selection", 0,
                                 ImgPlusValue.class));
                 createNewGroup("Patching options:");

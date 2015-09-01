@@ -76,15 +76,13 @@ import org.knime.knip.base.data.img.ImgPlusCell;
 import org.knime.knip.base.data.img.ImgPlusCellFactory;
 import org.knime.knip.base.data.img.ImgPlusValue;
 import org.knime.knip.base.node.NodeUtils;
-import org.knime.knip.qualityControl.patching.Patcher;
+import org.knime.knip.qc.patching.Patcher;
 
 /**
- * Crop BitMasks or parts of images according to a Labeling
+ * Cut image into patches of mainly the same size
  *
- * @author <a href="mailto:dietzc85@googlemail.com">Christian Dietz</a>
- * @author <a href="mailto:horn_martin@gmx.de">Martin Horn</a>
- * @author <a href="mailto:michael.zinsmaier@googlemail.com">Michael
- *         Zinsmaier</a>
+ * @author <a href="mailto:adrian.nembach@uni-konstanz.de">Adrian Nembach</a>
+ * 
  * @param <L>
  * @param <T>
  */
@@ -223,8 +221,15 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                         if (m_patchingMethodSwitchModel.getStringValue().equals(PATCHING_METHOD_SWITCH_OPTIONS[0])) {
                                 patchesPerDimension = Patcher.calculatePatchesPerDimension(numPatches, dimensionSizes);
                         } else {
-                                patchesPerDimension = new int[] {m_numPatchesPerDimensionModels[0].getIntValue(),
-                                                m_numPatchesPerDimensionModels[1].getIntValue()};
+                                patchesPerDimension = new int[img.numDimensions()];
+                                patchesPerDimension[0] = m_numPatchesPerDimensionModels[0].getIntValue();
+                                patchesPerDimension[1] = m_numPatchesPerDimensionModels[1].getIntValue();
+                                // The remaining dimensions need to be set to one
+                                if (patchesPerDimension.length > 2) {
+                                        for (int d = 2; d < patchesPerDimension.length; d++) {
+                                                patchesPerDimension[d] = 1;
+                                        }
+                                }
                         }
 
                         Object[] patches = Patcher.patchImg(img, dimensions, patchesPerDimension);
