@@ -5,6 +5,11 @@ package org.knime.knip.qc.patching;
  */
 public class CounterFullException extends Exception {
 
+        /**
+         * Default serialVersionUID
+         */
+        private static final long serialVersionUID = 1L;
+
         public CounterFullException() {
         }
 
