@@ -1,4 +1,4 @@
-package org.knime.knip.qualityControl.patching;
+package org.knime.knip.qc.patching;
 
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccess;
@@ -70,7 +70,11 @@ public class Patcher {
                         patches[p] = createPatch(img, min, max);
 
                         // increment counter
-                        counter.increment();
+                        try {
+                                counter.increment();
+                        } catch (CounterFullException e) {
+                                e.printStackTrace();
+                        }
                 }
 
                 return patches;
@@ -111,6 +115,113 @@ public class Patcher {
                 }
 
                 return patch;
+        }
+
+        /* Calculates the patches per dimension relative to the dimension size
+         * Parameters:  numPatches: Total number of patches must be a power of 2
+         *              dimensions: The size of each dimension (the index indicates which dimension)
+         * Output:  int array containing the patches per dimension
+         */
+        public static <T> int[] calculatePatchesPerDimensionRelSize(final int numPatches, final long[] dimensions) {
+
+                // captures the patches per dimension
+                final int[] patchesPerDimension = new int[dimensions.length];
+                long sumSizes = 0;
+                for (long d : dimensions)
+                        sumSizes += d;
+                // compute ratio of sizes of the dimensions
+                final double[] sizeRatio = new double[dimensions.length];
+                for (int d = 0; d < sizeRatio.length; d++)
+                        sizeRatio[d] = ((double) dimensions[d]) / sumSizes;
+
+                // log2 of numPatches
+                final int pow = log2(numPatches);
+                // used to keep track how many patches are already assigned
+                int powCounter = pow;
+
+                // assign patches to dimensions
+                for (int p = 0; p < patchesPerDimension.length; p++) {
+                        if (powCounter == 0) {
+                                patchesPerDimension[p] = 1;
+                        } else {
+                                patchesPerDimension[p] = (int) Math.pow(2, (int) (sizeRatio[p] * pow));
+                                powCounter -= (int) (sizeRatio[p] * pow);
+                        }
+                }
+
+                // assign left over patches to largest dimension
+                if (powCounter > 0) {
+                        patchesPerDimension[argmax(sizeRatio)] *= (int) Math.pow(2, powCounter);
+                }
+
+                return patchesPerDimension;
+        }
+
+        /* Calculates the most even distribution of patches over the dimensions
+         * for example 4*4 is better than 8*2 (assuming that the dimensions are of approximately the same size)
+         * Parameters:  numPatches: Total number of patches must be a power of 2
+         *              dimensions: The size of each dimension (the index indicates which dimension)
+         * Output:  int array containing the patches per dimension
+         */
+        public static int[] calculatePatchesPerDimension(final int numPatches, final long[] dimensions) {
+                if (numPatches % 2 != 0) {
+                        throw new IllegalArgumentException("The number of patches must be a power of 2.");
+                }
+                int pow = log2(numPatches);
+
+                // calculate average number of patches per dimension
+                int avgPatches = (int) Math.round(((double) pow) / dimensions.length);
+
+                int[] patchesPerDimension = new int[dimensions.length];
+
+                for (int p = 0; p < dimensions.length; p++) {
+                        // Check if their are still patches to distribute
+                        if (pow == 0) {
+                                // No more patches left
+                                patchesPerDimension[p] = 1;
+                        } else if (pow - avgPatches >= 0) {
+                                // Still enough patches left
+                                patchesPerDimension[p] = (int) Math.pow(2, avgPatches);
+                                pow -= avgPatches;
+                        } else {
+                                // Not enough patches are left to fill this dimension with avgPatches
+                                patchesPerDimension[p] = (int) Math.pow(2, pow);
+                                pow = 0;
+                        }
+                }
+
+                // Check if still there are still patches left to distribute
+                if (pow > 0)
+                        // Put those splits into the first dimension
+                        patchesPerDimension[0] *= (int) Math.pow(2, pow);
+
+                return patchesPerDimension;
+        }
+
+        /* Computes the log2 for input ONLY ACCURATE FOR POWERS OF 2
+         * Parameters:  input:  The int for which the log2 is to be computed
+         * Output:  The log2 of input
+         */
+        private static int log2(final int input) {
+                int num = input;
+                int pow = 0;
+                for (; num > 0; pow++)
+                        num >>= 1;
+                pow--;
+                return pow;
+        }
+
+        /* Returns the index of the largest element of array
+         * Parameters:  array:  input double array
+         * Output:  Index of largest element in array
+         */
+        private static int argmax(final double[] array) {
+                int index = 0;
+
+                for (int i = 0; i < array.length; i++)
+                        index = (array[i] > array[index]) ? i : index;
+
+                return index;
         }
 
 }

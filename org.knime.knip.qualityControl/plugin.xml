@@ -1,4 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.0"?>
 <plugin>
+   <extension
+         point="org.knime.workbench.repository.nodes">
+      <node
+            expert-flag="false"
+            factory-class="org.knime.knip.qc.nodes.patcher.PatcherNodeFactory"
+            id="org.knime.knip.qc.nodes.patcher.PatcherNodeFactory">
+      </node>
+      <node
+            expert-flag="false"
+            factory-class="org.knime.knip.qc.nodes.globalfeature.GlobalFeatureNodeFactory"
+            id="org.knime.knip.qc.nodes.globalfeature.GlobalFeatureNodeFactory">
+      </node>
+   </extension>
 </plugin>

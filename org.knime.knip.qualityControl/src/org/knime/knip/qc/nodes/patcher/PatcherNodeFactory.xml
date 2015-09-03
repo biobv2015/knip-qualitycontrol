@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE knimeNode PUBLIC "-//UNIKN//DTD KNIME Node 2.0//EN" "http://www.knime.org/Node.dtd">
+<knimeNode type="Manipulator" icon="patcher.png">
+	<name>Patcher</name>
+	<shortDescription>
+		Cuts images into patches of mainly the same size
+	</shortDescription>
+
+	<fullDescription>
+		<intro>
+			Cuts image into the number of patches that is selected.
+			Most of the patches have the same size but the last in each row and column can be slightly smaller.
+			There are two options to define the number of patches
+			<ul>
+				<li>Define the total number of patches in powers of 2.
+				</li>
+				<li>
+					Define the number of patches for the first and second dimension (minimum number is 1).
+				</li>
+			</ul>
+		</intro>
+		<tab name="Options">
+
+			<option name="Column Selection">Select the column containing the image to be patched.
+			</option>
+
+			<option name="Patching Method">Select how you want to define the number of patches.
+			<ul>
+			<li>Select total number of patches (in powers of 2)</li>
+			<li>Select number of patches for the first and second dimension</li>
+			</ul>
+			</option>
+			<option name="Total number of patches">
+				The image will be cut into 2 to the power of the number you select
+			</option>
+			<option name="Number of patches in first dimension">
+				Number of patches in the first dimension.
+			</option>
+			<option name="Number of patches in second dimension">
+				Number of patches in the second dimension.
+			</option>
+			</tab>
+	</fullDescription>
+	<ports>
+		<inPort index="0" name="Images">Images
+		</inPort>
+		<outPort index="0" name="Patches">Patches</outPort>
+	</ports>
+	<views>
+		<view name="Table Cell View" index="0">Patches</view>
+	</views>
+</knimeNode>
