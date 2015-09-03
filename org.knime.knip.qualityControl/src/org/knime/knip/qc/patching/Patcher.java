@@ -70,7 +70,11 @@ public class Patcher {
                         patches[p] = createPatch(img, min, max);
 
                         // increment counter
-                        counter.increment();
+                        try {
+                                counter.increment();
+                        } catch (CounterFullException e) {
+                                e.printStackTrace();
+                        }
                 }
 
                 return patches;
@@ -160,25 +164,35 @@ public class Patcher {
          * Output:  int array containing the patches per dimension
          */
         public static int[] calculatePatchesPerDimension(final int numPatches, final long[] dimensions) {
+                if (numPatches % 2 != 0) {
+                        throw new IllegalArgumentException("The number of patches must be a power of 2.");
+                }
                 int pow = log2(numPatches);
 
+                // calculate average number of patches per dimension
                 int avgPatches = (int) Math.round(((double) pow) / dimensions.length);
 
                 int[] patchesPerDimension = new int[dimensions.length];
 
                 for (int p = 0; p < dimensions.length; p++) {
+                        // Check if their are still patches to distribute
                         if (pow == 0) {
+                                // No more patches left
                                 patchesPerDimension[p] = 1;
                         } else if (pow - avgPatches >= 0) {
+                                // Still enough patches left
                                 patchesPerDimension[p] = (int) Math.pow(2, avgPatches);
                                 pow -= avgPatches;
                         } else {
+                                // Not enough patches are left to fill this dimension with avgPatches
                                 patchesPerDimension[p] = (int) Math.pow(2, pow);
                                 pow = 0;
                         }
                 }
 
+                // Check if still there are still patches left to distribute
                 if (pow > 0)
+                        // Put those splits into the first dimension
                         patchesPerDimension[0] *= (int) Math.pow(2, pow);
 
                 return patchesPerDimension;
@@ -208,18 +222,6 @@ public class Patcher {
                         index = (array[i] > array[index]) ? i : index;
 
                 return index;
-        }
-
-        public static void main(String[] args) {
-                int numPatches = 256;
-                long[] dimensions = {100, 100, 100};
-                int[] patchesPerDimension = calculatePatchesPerDimension(numPatches, dimensions);
-
-                System.out.print("patchesPerDimension: ");
-                for (int dim : patchesPerDimension)
-                        System.out.print(dim + " ");
-                System.out.println();
-
         }
 
 }
