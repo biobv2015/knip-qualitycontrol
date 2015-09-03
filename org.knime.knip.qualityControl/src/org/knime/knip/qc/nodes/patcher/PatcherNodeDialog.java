@@ -21,8 +21,8 @@ public class PatcherNodeDialog<L extends Comparable<L>> extends DefaultNodeSetti
                 createNewGroup("Column Selection:");
                 addDialogComponent(new DialogComponentColumnNameSelection(PatcherNodeModel.createImgColumnSelectionModel(), "Column Selection", 0,
                                 ImgPlusValue.class));
-                createNewGroup("Patching options:");
 
+                createNewGroup("Patching options:");
                 final SettingsModelString patchingMethodSwitch = PatcherNodeModel.createPatchingMethodSwitchModel();
                 final SettingsModelInteger totalNumPatches = PatcherNodeModel.createTotalNumPatchesSelectionModel();
                 final SettingsModelInteger[] patchesPerDimension = PatcherNodeModel.createNumPatchesPerDimensionModel();
@@ -30,11 +30,17 @@ public class PatcherNodeDialog<L extends Comparable<L>> extends DefaultNodeSetti
                 addDialogComponent(new DialogComponentButtonGroup(patchingMethodSwitch, true, "Patching method:",
                                 PatcherNodeModel.PATCHING_METHOD_SWITCH_OPTIONS[0], PatcherNodeModel.PATCHING_METHOD_SWITCH_OPTIONS[1]));
 
-                addDialogComponent(new DialogComponentNumber(totalNumPatches, "Total number of patches (2 to the power of)", 1));
+                // option total number of patches
+                addDialogComponent(new DialogComponentNumber(totalNumPatches, "Total number of patches (2 to the power of)",
+                                PatcherNodeModel.DEFAULT_TOTAL_NUM_PATCHES));
 
-                addDialogComponent(new DialogComponentNumber(patchesPerDimension[0], "Number of patches in first dimension:", 1));
-                addDialogComponent(new DialogComponentNumber(patchesPerDimension[1], "Number of patches in second dimension:", 1));
+                // option number of patches per dimension
+                addDialogComponent(new DialogComponentNumber(patchesPerDimension[0], "Number of patches in first dimension:",
+                                PatcherNodeModel.DEFAULT_NUM_PATCHES_PER_DIMENSION[0]));
+                addDialogComponent(new DialogComponentNumber(patchesPerDimension[1], "Number of patches in second dimension:",
+                                PatcherNodeModel.DEFAULT_NUM_PATCHES_PER_DIMENSION[1]));
 
+                // add listener to switch between the options total number of patches and number of patches per dimension
                 patchingMethodSwitch.addChangeListener(new ChangeListener() {
                         public void stateChanged(final ChangeEvent e) {
                                 if (patchingMethodSwitch.getStringValue().equals(PatcherNodeModel.PATCHING_METHOD_SWITCH_OPTIONS[0])) {

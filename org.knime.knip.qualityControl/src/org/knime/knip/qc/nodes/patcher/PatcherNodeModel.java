@@ -93,6 +93,8 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
 
         static final String[] PATCHING_METHOD_SWITCH_OPTIONS = new String[] {"Total number of patches",
                         "Number of patches per dimension (first and second)"};
+        static final int DEFAULT_TOTAL_NUM_PATCHES = 1;
+        static final int[] DEFAULT_NUM_PATCHES_PER_DIMENSION = {1, 1};
 
         /**
          * Helper
@@ -104,12 +106,14 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
         }
 
         static SettingsModelInteger createTotalNumPatchesSelectionModel() {
-                return new SettingsModelIntegerBounded("totalNumPatches", 0, 0, Integer.MAX_VALUE);
+                return new SettingsModelIntegerBounded("totalNumPatches", DEFAULT_TOTAL_NUM_PATCHES, 0, Integer.MAX_VALUE);
         }
 
         static SettingsModelInteger[] createNumPatchesPerDimensionModel() {
-                SettingsModelInteger patchesPerDimensionModelX = new SettingsModelIntegerBounded("patchesPerDimensionModelX", 1, 1, Integer.MAX_VALUE);
-                SettingsModelInteger patchesPerDimensionModelY = new SettingsModelIntegerBounded("patchesPerDimensionModelY", 1, 1, Integer.MAX_VALUE);
+                SettingsModelInteger patchesPerDimensionModelX = new SettingsModelIntegerBounded("patchesPerDimensionModelX",
+                                DEFAULT_NUM_PATCHES_PER_DIMENSION[0], 1, Integer.MAX_VALUE);
+                SettingsModelInteger patchesPerDimensionModelY = new SettingsModelIntegerBounded("patchesPerDimensionModelY",
+                                DEFAULT_NUM_PATCHES_PER_DIMENSION[1], 1, Integer.MAX_VALUE);
                 patchesPerDimensionModelX.setEnabled(false);
                 patchesPerDimensionModelY.setEnabled(false);
                 return new SettingsModelInteger[] {patchesPerDimensionModelX, patchesPerDimensionModelY};
@@ -147,7 +151,9 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
 
                 int imgColIdx = inSpecs[0].findColumnIndex(m_imgColumnNameModel.getStringValue());
 
+                // check if selected image column is contained in input table
                 if (imgColIdx == -1) {
+                        // automatically select an image column
                         if (NodeUtils.autoOptionalColumnSelection(inSpecs[0], m_imgColumnNameModel, ImgPlusValue.class) >= 0) {
                                 setWarningMessage("Auto-configure Label Column: " + m_imgColumnNameModel.getStringValue());
                         } else {
@@ -155,10 +161,12 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                         }
                 }
 
+                // check number of patches per dimension settings
                 if (m_numPatchesPerDimensionModels[0].getIntValue() < 1 || m_numPatchesPerDimensionModels[1].getIntValue() < 1) {
                         throw new InvalidSettingsException("There must be at least one patch per dimension!");
                 }
 
+                // check total number of patches settings
                 if (m_totalNumPatchesModel.getIntValue() < 0) {
                         throw new InvalidSettingsException("The minimal number of patches is 1 (2^0)!");
                 }
@@ -182,7 +190,9 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
 
                 // find img column index
                 int imgColIdx = inData[0].getDataTableSpec().findColumnIndex(m_imgColumnNameModel.getStringValue());
+                // check if selected image column is contained in input table
                 if (imgColIdx == -1) {
+                        // automatically select an image column
                         if (NodeUtils.autoOptionalColumnSelection(inData[0].getDataTableSpec(), m_imgColumnNameModel, ImgPlusValue.class) >= 0) {
                                 setWarningMessage("Auto-configure Label Column: " + m_imgColumnNameModel.getStringValue());
                         } else {
@@ -196,15 +206,10 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                 final BufferedDataContainer container = exec.createDataContainer(createOutSpec()[0]);
                 final ImgPlusCellFactory imgCellFac = new ImgPlusCellFactory(exec);
 
-                int imgCellIdx = inData[0].getSpec().findColumnIndex(m_imgColumnNameModel.getStringValue());
                 int numPatches = (int) Math.pow(2, m_totalNumPatchesModel.getIntValue());
 
-                if (imgCellIdx == -1) {
-                        throw new IllegalArgumentException("No Image Column found with name: " + m_imgColumnNameModel.getStringValue());
-                }
-
                 for (final DataRow row : inData[0]) {
-                        final ImgPlusValue<T> imgPlusValue = (ImgPlusValue<T>) row.getCell(imgCellIdx);
+                        final ImgPlusValue<T> imgPlusValue = (ImgPlusValue<T>) row.getCell(imgColIdx);
                         DataCell[] cells = new DataCell[2];
 
                         // get Img from ImgPlus
@@ -218,6 +223,7 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                                 dimensions[i] = i;
                         int[] patchesPerDimension = null;
 
+                        // check which patching option is selected
                         if (m_patchingMethodSwitchModel.getStringValue().equals(PATCHING_METHOD_SWITCH_OPTIONS[0])) {
                                 patchesPerDimension = Patcher.calculatePatchesPerDimension(numPatches, dimensionSizes);
                         } else {
@@ -232,10 +238,12 @@ public class PatcherNodeModel<L extends Comparable<L>, T extends RealType<T>> ex
                                 }
                         }
 
+                        // patch image
                         Object[] patches = Patcher.patchImg(img, dimensions, patchesPerDimension);
 
+                        // write patches into data conainer
                         for (int p = 0; p < patches.length; p++) {
-                                // TODO: write patch into ImgPlus
+                                // write patch into ImgPlus
                                 ImgPlus<T> impPatch = new ImgPlus<T>((Img<T>) patches[p]);
                                 cells[0] = imgCellFac.createCell(imgPlusValue.getImgPlus());
                                 cells[1] = imgCellFac.createCell(impPatch);
